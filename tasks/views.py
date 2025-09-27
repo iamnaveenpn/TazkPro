@@ -440,14 +440,21 @@ def pending_approvals_view(request):
 
 @login_required
 def notifications_view(request):
-    """User notifications view"""
-    notifications = request.user.notifications.order_by('-created_at')[:50]
+    """User notifications view - with error handling"""
+    try:
+        notifications = request.user.notifications.order_by('-created_at')[:50]
+        
+        # Mark as read when viewed
+        unread_notifications = notifications.filter(is_read=False)
+        unread_notifications.update(is_read=True)
+        
+        context = {'notifications': notifications}
+        return render(request, 'tasks/notifications.html', context)
+    except Exception as e:
+        # If notifications don't work, show error
+        context = {
+            'notifications': [],
+            'error_message': f'Notifications are currently unavailable: {str(e)}'
+        }
+        return render(request, 'tasks/notifications.html', context)
 
-    # Mark as read when viewed
-    unread_notifications = notifications.filter(is_read=False)
-    unread_notifications.update(is_read=True)
-
-    context = {
-        'notifications': notifications,
-    }
-    return render(request, 'tasks/notifications.html', context)
