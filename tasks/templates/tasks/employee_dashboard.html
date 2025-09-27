@@ -1,0 +1,220 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Employee Dashboard - Task Pro{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2>
+            <i class="fas fa-user-tie"></i> My Dashboard
+        </h2>
+        <p class="text-muted">Welcome back, {{ user.get_full_name|default:user.username }}!</p>
+    </div>
+    <div class="col-auto">
+        <a href="{% url 'task_list' %}" class="btn btn-primary">
+            <i class="fas fa-list"></i> View All Tasks
+        </a>
+    </div>
+</div>
+
+<!-- Task Statistics -->
+<div class="row mb-4">
+    <div class="col-lg-2 col-md-4 col-sm-6">
+        <div class="card stat-card p-2 bg-primary p-2">
+            <div class="stat-number">{{ total_tasks }}</div>
+            <div class="stat-label">Total Tasks</div>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-sm-6">
+        <div class="card stat-card p-2 bg-secondary">
+            <div class="stat-number">{{ assigned_tasks }}</div>
+            <div class="stat-label">Assigned</div>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-sm-6">
+        <div class="card stat-card p-2 bg-info">
+            <div class="stat-number">{{ in_progress_tasks }}</div>
+            <div class="stat-label">In Progress</div>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-sm-6">
+        <div class="card stat-card p-2 bg-warning">
+            <div class="stat-number">{{ completed_tasks }}</div>
+            <div class="stat-label">Completed</div>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-sm-6">
+        <div class="card stat-card p-2 bg-success">
+            <div class="stat-number">{{ approved_tasks }}</div>
+            <div class="stat-label">Approved</div>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-sm-6">
+        <div class="card stat-card p-2 bg-danger">
+            <div class="stat-number">{{ overdue_tasks }}</div>
+            <div class="stat-label">Overdue</div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Urgent Tasks -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-exclamation-triangle"></i> Urgent Tasks
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if urgent_tasks %}
+                    {% for task in urgent_tasks %}
+                        <div class="mb-3 pb-3 {% if not forloop.last %}border-bottom{% endif %}">
+                            <h6 class="mb-1">
+                                <a href="{% url 'task_detail' task.pk %}" class="text-decoration-none">
+                                    {{ task.title }}
+                                </a>
+                            </h6>
+                            <div class="mb-2">
+                                <span class="badge priority-{{ task.priority.name|lower }}">
+                                    {{ task.priority.name }}
+                                </span>
+                                <span class="badge status-{{ task.status }}">
+                                    {{ task.get_status_display }}
+                                </span>
+                            </div>
+                            {% if task.due_date %}
+                                <small class="{% if task.is_overdue %}text-danger{% else %}text-muted{% endif %}">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    Due: {{ task.due_date|date:"M d, Y" }}
+                                    {% if task.is_overdue %}
+                                        <strong>(Overdue!)</strong>
+                                    {% endif %}
+                                </small>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted text-center py-3">
+                        <i class="fas fa-check-circle fa-2x mb-2 d-block text-success"></i>
+                        No urgent tasks. Good job!
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Tasks -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">
+                    <i class="fas fa-clock"></i> Recent Tasks
+                </h6>
+                <a href="{% url 'task_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                {% if recent_tasks %}
+                    <div class="row">
+                        {% for task in recent_tasks %}
+                            <div class="col-lg-6">
+                                <div class="card task-card mb-3 {% if task.priority %}priority-{{ task.priority.name|lower }}{% endif %}">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <h6 class="card-title mb-0">
+                                                <a href="{% url 'task_detail' task.pk %}" class="text-decoration-none">
+                                                    {{ task.title|truncatechars:25 }}
+                                                </a>
+                                            </h6>
+                                            {% if task.status == 'completed' and task.approval_status == 'pending' %}
+                                                <span class="badge bg-warning">
+                                                    <i class="fas fa-clock"></i> Pending Approval
+                                                </span>
+                                            {% elif task.status == 'approved' %}
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-check"></i> Approved
+                                                </span>
+                                            {% elif task.status == 'rejected' %}
+                                                <span class="badge bg-danger">
+                                                    <i class="fas fa-times"></i> Rejected
+                                                </span>
+                                            {% endif %}
+                                        </div>
+
+                                        <div class="mb-2">
+                                            <span class="badge status-{{ task.status }}">
+                                                {{ task.get_status_display }}
+                                            </span>
+                                            {% if task.priority %}
+                                                <span class="badge priority-{{ task.priority.name|lower }} ms-1">
+                                                    {{ task.priority.name }}
+                                                </span>
+                                            {% endif %}
+                                        </div>
+
+                                        <div class="row small text-muted">
+                                            <div class="col-6">
+                                                <i class="fas fa-calendar-plus"></i> {{ task.created_at|date:"M d" }}
+                                            </div>
+                                            {% if task.due_date %}
+                                                <div class="col-6 text-end">
+                                                    <i class="fas fa-calendar-check"></i> {{ task.due_date|date:"M d" }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center py-4">
+                        <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+                        No tasks assigned yet.
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions for Employee -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Quick Actions</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <a href="{% url 'task_list' %}?status=assigned" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-clipboard-list"></i><br>
+                            <small>New Tasks</small>
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{% url 'task_list' %}?status=in_progress" class="btn btn-outline-info w-100">
+                            <i class="fas fa-cog"></i><br>
+                            <small>In Progress</small>
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{% url 'notifications' %}" class="btn btn-outline-warning w-100">
+                            <i class="fas fa-bell"></i><br>
+                            <small>Notifications</small>
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{% url 'task_list' %}?status=completed" class="btn btn-outline-success w-100">
+                            <i class="fas fa-check-circle"></i><br>
+                            <small>Completed</small>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

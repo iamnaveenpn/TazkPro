@@ -1,0 +1,332 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ task.title }} - Task Pro{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <h4 class="mb-0">{{ task.title }}</h4>
+                    <div class="mt-2">
+                        <span class="badge status-{{ task.status }} me-2">
+                            {{ task.get_status_display }}
+                        </span>
+                        {% if task.priority %}
+                            <span class="badge priority-{{ task.priority.name|lower }} me-2">
+                                {{ task.priority.name }} Priority
+                            </span>
+                        {% endif %}
+                        {% if task.category %}
+                            <span class="badge me-2" style="background-color: {{ task.category.color }};">
+                                {{ task.category.name }}
+                            </span>
+                        {% endif %}
+                        {% if task.is_overdue %}
+                            <span class="badge bg-danger">
+                                <i class="fas fa-exclamation-triangle"></i> Overdue
+                            </span>
+                        {% endif %}
+                        {% if task.approval_status == 'pending' %}
+                            <span class="badge bg-warning">
+                                <i class="fas fa-clock"></i> Pending Approval
+                            </span>
+                        {% elif task.status == 'rejected' %}
+                            <span class="badge bg-danger">
+                                <i class="fas fa-times"></i> Rejected
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="dropdown">
+                    <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        Actions
+                    </button>
+                    <ul class="dropdown-menu">
+                        {% if not is_admin and task.assigned_to == user %}
+                            <li><a class="dropdown-item" href="{% url 'task_update' task.pk %}">
+                                <i class="fas fa-edit"></i> Update Task
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                        {% endif %}
+                        {% if is_admin %}
+                            <li><a class="dropdown-item text-danger" href="{% url 'task_delete' task.pk %}">
+                                <i class="fas fa-trash"></i> Delete Task
+                            </a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card-body">
+                {% if task.description %}
+                    <div class="mb-4">
+                        <h6>Description</h6>
+                        <p class="text-muted">{{ task.description|linebreaks }}</p>
+                    </div>
+                {% endif %}
+
+                {% if task.attachment %}
+                    <div class="mb-4">
+                        <h6>Attachment</h6>
+                        <a href="{{ task.attachment.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                            <i class="fas fa-download"></i> Download
+                        </a>
+                    </div>
+                {% endif %}
+
+                {% if task.completion_notes and task.status in 'completed,approved,rejected' %}
+                    <div class="mb-4">
+                        <h6>Completion Notes</h6>
+                        <p class="text-muted">{{ task.completion_notes|linebreaks }}</p>
+                    </div>
+                {% endif %}
+
+                {% if task.approval_notes and is_admin %}
+                    <div class="mb-4">
+                        <h6>Approval Notes</h6>
+                        <p class="text-muted">{{ task.approval_notes|linebreaks }}</p>
+                    </div>
+                {% endif %}
+
+                <!-- Admin Approval Section -->
+                {% if can_approve %}
+                    <div class="mb-4 p-3 border rounded bg-light">
+                        <h6>Approve or Reject Task</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <form method="post" action="{% url 'approve_task' task.id %}">
+                                    {% csrf_token %}
+                                    <div class="mb-2">
+                                        <textarea name="approval_notes" class="form-control" rows="3" placeholder="Optional approval notes..."></textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="fas fa-check"></i> Approve Task
+                                    </button>
+                                </form>
+                            </div>
+                            <div class="col-md-6">
+                                <form method="post" action="{% url 'reject_task' task.id %}">
+                                    {% csrf_token %}
+                                    <div class="mb-2">
+                                        <textarea name="approval_notes" class="form-control" rows="3" placeholder="Rejection notes (required)..." required></textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-danger">
+                                        <i class="fas fa-times"></i> Reject Task
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <!-- Task Info -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Task Details</h6>
+                        <table class="table table-sm">
+                            <tr>
+                                <td><strong>Assigned to:</strong></td>
+                                <td>{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Created by:</strong></td>
+                                <td>{{ task.created_by.get_full_name|default:task.created_by.username }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Created:</strong></td>
+                                <td>{{ task.created_at|date:"M d, Y H:i" }}</td>
+                            </tr>
+                            {% if task.due_date %}
+                            <tr>
+                                <td><strong>Due date:</strong></td>
+                                <td class="{% if task.is_overdue %}text-danger{% endif %}">
+                                    {{ task.due_date|date:"M d, Y H:i" }}
+                                </td>
+                            </tr>
+                            {% endif %}
+                            {% if task.estimated_hours %}
+                            <tr>
+                                <td><strong>Estimated hours:</strong></td>
+                                <td>{{ task.estimated_hours }}</td>
+                            </tr>
+                            {% endif %}
+                            {% if task.actual_hours %}
+                            <tr>
+                                <td><strong>Actual hours:</strong></td>
+                                <td>{{ task.actual_hours }}</td>
+                            </tr>
+                            {% endif %}
+                            {% if task.completed_at %}
+                            <tr>
+                                <td><strong>Completed:</strong></td>
+                                <td>{{ task.completed_at|date:"M d, Y H:i" }}</td>
+                            </tr>
+                            {% endif %}
+                            {% if task.approved_at %}
+                            <tr>
+                                <td><strong>Approved:</strong></td>
+                                <td>{{ task.approved_at|date:"M d, Y H:i" }}</td>
+                            </tr>
+                            {% endif %}
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Quick Status Update</h6>
+                        {% if not is_admin and task.assigned_to == user and task.status != 'approved' %}
+                            <form id="status-form" method="post" action="{% url 'update_task_status' task.pk %}">
+                                {% csrf_token %}
+                                <select name="status" class="form-select mb-2" onchange="updateStatus()">
+                                    {% for value, label in task.STATUS_CHOICES %}
+                                        {% if value in 'assigned,in_progress,completed' %}
+                                            <option value="{{ value }}" {% if task.status == value %}selected{% endif %}>
+                                                {{ label }}
+                                            </option>
+                                        {% endif %}
+                                    {% endfor %}
+                                </select>
+                                <small class="text-muted">Status will update automatically when changed</small>
+                            </form>
+                        {% else %}
+                            <p class="text-muted">Current status: <strong>{{ task.get_status_display }}</strong></p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comments Section -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-comments"></i> Comments ({{ comments.count }})
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Add Comment Form -->
+                <form method="post" action="{% url 'add_comment' task.pk %}" class="mb-4">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        {{ comment_form.content }}
+                    </div>
+                    {% if comment_form.is_internal %}
+                        <div class="mb-3">
+                            {{ comment_form.is_internal }} <label for="{{ comment_form.is_internal.id_for_label }}">Internal comment (admin only)</label>
+                        </div>
+                    {% endif %}
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="fas fa-paper-plane"></i> Add Comment
+                    </button>
+                </form>
+
+                <!-- Comments List -->
+                {% for comment in comments %}
+                    <div class="comment-item {% if comment.is_internal %}bg-light border-start border-warning border-3 ps-3{% endif %}">
+                        <div class="d-flex justify-content-between">
+                            <div class="comment-author">
+                                {{ comment.author.get_full_name|default:comment.author.username }}
+                                {% if comment.is_internal %}
+                                    <span class="badge bg-warning text-dark">Internal</span>
+                                {% endif %}
+                            </div>
+                            <div class="comment-date">
+                                {{ comment.created_at|timesince }} ago
+                            </div>
+                        </div>
+                        <div class="mt-1">
+                            {{ comment.content|linebreaks }}
+                        </div>
+                    </div>
+                {% empty %}
+                    <p class="text-muted text-center py-3">
+                        No comments yet. Be the first to comment!
+                    </p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <!-- Task History -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-history"></i> Recent Activity
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if history %}
+                    <div class="timeline">
+                        {% for item in history %}
+                            <div class="timeline-item">
+                                <small class="text-muted">{{ item.timestamp|timesince }} ago</small>
+                                <div>{{ item.action }}</div>
+                                <small class="text-muted">by {{ item.user.username }}</small>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center">No activity yet.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Approval History -->
+        {% if approval_history %}
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-check-circle"></i> Approval History
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% for approval in approval_history %}
+                        <div class="mb-3 pb-3 {% if not forloop.last %}border-bottom{% endif %}">
+                            <div class="d-flex justify-content-between">
+                                <strong class="{% if approval.action == 'approved' %}text-success{% elif approval.action == 'rejected' %}text-danger{% endif %}">
+                                    {{ approval.get_action_display }}
+                                </strong>
+                                <small class="text-muted">{{ approval.timestamp|timesince }} ago</small>
+                            </div>
+                            <div class="small text-muted">by {{ approval.approved_by.get_full_name }}</div>
+                            {% if approval.notes %}
+                                <div class="mt-2 small">{{ approval.notes }}</div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function updateStatus() {
+    const form = document.getElementById('status-form');
+    const formData = new FormData(form);
+
+    fetch(form.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error updating status');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating status');
+    });
+}
+</script>
+{% endblock %}

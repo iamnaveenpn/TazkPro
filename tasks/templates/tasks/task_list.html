@@ -1,0 +1,260 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Tasks - Task Pro{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2>
+            <i class="fas fa-list"></i> 
+            {% if is_admin %}All Tasks{% else %}My Tasks{% endif %}
+        </h2>
+    </div>
+    <div class="col-auto">
+        {% if is_admin %}
+            <a href="{% url 'task_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Assign New Task
+            </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Task Stats -->
+<div class="row mb-4">
+    <div class="col-md-2">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="text-primary">{{ task_counts.total }}</h5>
+                <small class="text-muted">Total</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="text-secondary">{{ task_counts.assigned }}</h5>
+                <small class="text-muted">Assigned</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="text-info">{{ task_counts.in_progress }}</h5>
+                <small class="text-muted">In Progress</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="text-warning">{{ task_counts.completed }}</h5>
+                <small class="text-muted">Completed</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="text-success">{{ task_counts.approved }}</h5>
+                <small class="text-muted">Approved</small>
+            </div>
+        </div>
+    </div>
+    {% if is_admin %}
+    <div class="col-md-2">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="text-warning">{{ task_counts.pending_approval }}</h5>
+                <small class="text-muted">Pending Approval</small>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Filters -->
+<div class="card filter-form">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-2">
+                {{ filter_form.status }}
+            </div>
+            <div class="col-md-2">
+                {{ filter_form.category }}
+            </div>
+            <div class="col-md-2">
+                {{ filter_form.priority }}
+            </div>
+            {% if is_admin %}
+            <div class="col-md-2">
+                {{ filter_form.assigned_to }}
+            </div>
+            <div class="col-md-2">
+                {{ filter_form.approval_status }}
+            </div>
+            {% endif %}
+            <div class="col-md-{% if is_admin %}2{% else %}4{% endif %}">
+                {{ filter_form.search }}
+            </div>
+            <div class="col-md-auto">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search"></i>
+                </button>
+                <a href="{% url 'task_list' %}" class="btn btn-outline-secondary ms-1">
+                    <i class="fas fa-times"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tasks List -->
+<div class="row">
+    {% for task in tasks %}
+        <div class="col-lg-6 col-xl-4">
+            <div class="card task-card {% if task.priority %}priority-{{ task.priority.name|lower }}{% endif %} {% if task.status == 'approved' %}status-completed{% endif %}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="card-title mb-0">
+                            <a href="{% url 'task_detail' task.pk %}" class="text-decoration-none">
+                                {{ task.title }}
+                            </a>
+                        </h6>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{% url 'task_detail' task.pk %}">
+                                    <i class="fas fa-eye"></i> View
+                                </a></li>
+                                {% if not is_admin and task.assigned_to == user %}
+                                    <li><a class="dropdown-item" href="{% url 'task_update' task.pk %}">
+                                        <i class="fas fa-edit"></i> Update
+                                    </a></li>
+                                {% endif %}
+                                {% if is_admin %}
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-danger" href="{% url 'task_delete' task.pk %}">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </a></li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+
+                    {% if task.description %}
+                        <p class="card-text text-muted small">
+                            {{ task.description|truncatewords:15 }}
+                        </p>
+                    {% endif %}
+
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <span class="badge status-{{ task.status }}">
+                                {{ task.get_status_display }}
+                            </span>
+                            {% if task.priority %}
+                                <span class="badge priority-{{ task.priority.name|lower }} ms-1">
+                                    {{ task.priority.name }}
+                                </span>
+                            {% endif %}
+                            {% if task.approval_status == 'pending' %}
+                                <span class="badge bg-warning ms-1">
+                                    <i class="fas fa-clock"></i> Pending Approval
+                                </span>
+                            {% elif task.status == 'rejected' %}
+                                <span class="badge bg-danger ms-1">
+                                    <i class="fas fa-times"></i> Rejected
+                                </span>
+                            {% endif %}
+                        </div>
+                        {% if task.category %}
+                            <span class="badge" style="background-color: {{ task.category.color }};">
+                                {{ task.category.name }}
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="row small text-muted">
+                        {% if is_admin %}
+                            <div class="col-6">
+                                <i class="fas fa-user"></i> {{ task.assigned_to.first_name }}
+                            </div>
+                        {% else %}
+                            <div class="col-6">
+                                <i class="fas fa-user-tie"></i> {{ task.created_by.first_name }}
+                            </div>
+                        {% endif %}
+                        <div class="col-6 text-end">
+                            <i class="fas fa-clock"></i> {{ task.created_at|date:"M d" }}
+                        </div>
+                    </div>
+
+                    {% if task.due_date %}
+                        <div class="mt-2">
+                            <small class="{% if task.is_overdue %}text-danger{% else %}text-muted{% endif %}">
+                                <i class="fas fa-calendar-alt"></i>
+                                Due: {{ task.due_date|date:"M d, Y" }}
+                                {% if task.is_overdue %}<i class="fas fa-exclamation-triangle"></i>{% endif %}
+                            </small>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% empty %}
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+                    <h5 class="text-muted">No tasks found</h5>
+                    <p class="text-muted">
+                        {% if is_admin %}
+                            Create your first task or adjust your filters.
+                        {% else %}
+                            No tasks assigned to you yet.
+                        {% endif %}
+                    </p>
+                    {% if is_admin %}
+                        <a href="{% url 'task_create' %}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Assign Task
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if is_paginated %}
+    <nav aria-label="Tasks pagination" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">First</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">Previous</a>
+                </li>
+            {% endif %}
+
+            <li class="page-item active">
+                <span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+            </li>
+
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">Next</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">Last</a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+{% endif %}
+{% endblock %}
