@@ -23,181 +23,238 @@
     </div>
 </div>
 
-<!-- Key Metrics -->
-<div class="row mb-4">
-    <div class="col-lg-3 col-md-6">
-        <div class="card stat-card  p-2 bg-primary">
-            <div class="stat-number">{{ total_tasks }}</div>
-            <div class="stat-label">Total Tasks</div>
-        </div>
+<!-- Key Metrics Table -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Overview Statistics</h5>
     </div>
-    <div class="col-lg-3 col-md-6">
-        <div class="card stat-card  p-2 bg-warning">
-            <div class="stat-number">{{ pending_approval }}</div>
-            <div class="stat-label">Pending Approval</div>
-        </div>
-    </div>
-    <div class="col-lg-3 col-md-6">
-        <div class="card stat-card  p-2 bg-danger">
-            <div class="stat-number">{{ overdue_tasks }}</div>
-            <div class="stat-label">Overdue Tasks</div>
-        </div>
-    </div>
-    <div class="col-lg-3 col-md-6">
-        <div class="card stat-card  p-2 bg-success">
-            <div class="stat-number">{{ total_employees }}</div>
-            <div class="stat-label">Active Employees</div>
-        </div>
+    <div class="card-body">
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Total Tasks</th>
+                    <th>Pending Approval</th>
+                    <th>Overdue Tasks</th>
+                    <th>Active Employees</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>{{ total_tasks }}</td>
+                    <td>{{ pending_approval }}</td>
+                    <td>{{ overdue_tasks }}</td>
+                    <td>{{ total_employees }}</td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 </div>
 
-<div class="row">
-    <!-- Tasks Needing Approval -->
-    <div class="col-lg-8">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">
-                    <i class="fas fa-clock"></i> Tasks Pending Approval
-                </h5>
-                <a href="{% url 'pending_approvals' %}" class="btn btn-sm btn-outline-warning">View All</a>
-            </div>
-            <div class="card-body">
-                {% if tasks_needing_approval %}
+<!-- Tasks Needing Approval Table -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Tasks Pending Approval</h5>
+        <a href="{% url 'pending_approvals' %}" class="btn btn-sm btn-outline-secondary">View All</a>
+    </div>
+    <div class="card-body">
+        {% if tasks_needing_approval %}
+            <table class="table table-bordered table-hover">
+                <thead>
+                    <tr>
+                        <th>Task Title</th>
+                        <th>Assigned To</th>
+                        <th>Completed At</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
                     {% for task in tasks_needing_approval %}
-                        <div class="d-flex align-items-center mb-3 pb-3 {% if not forloop.last %}border-bottom{% endif %}">
-                            <div class="flex-grow-1">
-                                <h6 class="mb-1">
-                                    <a href="{% url 'task_detail' task.pk %}" class="text-decoration-none">
-                                        {{ task.title }}
-                                    </a>
-                                </h6>
-                                <small class="text-muted">
-                                    <i class="fas fa-user"></i> {{ task.assigned_to.get_full_name }}
-                                    • Completed {{ task.completed_at|timesince }} ago
-                                </small>
-                            </div>
-                            <div>
+                        <tr>
+                            <td>
+                                <a href="{% url 'task_detail' task.pk %}" class="text-decoration-none">
+                                    {{ task.title }}
+                                </a>
+                            </td>
+                            <td>{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}</td>
+                            <td>{{ task.completed_at|date:"M d, Y H:i"|default:"N/A" }}</td>
+                            <td>
                                 <div class="btn-group btn-group-sm">
                                     <form method="post" action="{% url 'approve_task' task.id %}" style="display: inline;">
                                         {% csrf_token %}
-                                        <button type="submit" class="btn btn-success btn-sm">
+                                        <button type="submit" class="btn btn-sm btn-outline-success">
                                             <i class="fas fa-check"></i> Approve
                                         </button>
                                     </form>
-                                    <a href="{% url 'task_detail' task.pk %}" class="btn btn-outline-primary btn-sm">
+                                    <a href="{% url 'task_detail' task.pk %}" class="btn btn-sm btn-outline-primary">
                                         <i class="fas fa-eye"></i> Review
                                     </a>
                                 </div>
-                            </div>
-                        </div>
+                            </td>
+                        </tr>
                     {% endfor %}
-                {% else %}
-                    <p class="text-muted text-center py-4">
-                        <i class="fas fa-check-circle fa-3x mb-3 d-block text-success"></i>
-                        No tasks pending approval. Great work!
-                    </p>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-    <!-- Employee Performance -->
-    <div class="col-lg-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-users"></i> Employee Overview
-                </h5>
-            </div>
-            <div class="card-body">
-                {% for emp_stat in employee_stats %}
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div>
-                            <strong>{{ emp_stat.employee.get_full_name }}</strong>
-                            <br>
-                            <small class="text-muted">
-                                {{ emp_stat.completed_tasks }}/{{ emp_stat.total_tasks }} completed
-                            </small>
-                        </div>
-                        <div class="text-end">
-                            {% if emp_stat.overdue_tasks > 0 %}
-                                <span class="badge bg-danger">{{ emp_stat.overdue_tasks }} overdue</span>
-                            {% else %}
-                                <span class="badge bg-success">On track</span>
-                            {% endif %}
-                        </div>
-                    </div>
-                {% empty %}
-                    <p class="text-muted text-center">No employee data available</p>
-                {% endfor %}
-            </div>
-        </div>
-
-        <!-- Quick Actions -->
-        <div class="card mt-3">
-            <div class="card-header">
-                <h6 class="mb-0">Quick Actions</h6>
-            </div>
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    <a href="{% url 'task_create' %}" class="btn btn-primary btn-sm">
-                        <i class="fas fa-plus"></i> Assign New Task
-                    </a>
-                    <a href="{% url 'task_list' %}" class="btn btn-outline-secondary btn-sm">
-                        <i class="fas fa-list"></i> View All Tasks
-                    </a>
-                    <a href="/admin/" class="btn btn-outline-info btn-sm">
-                        <i class="fas fa-cog"></i> Admin Panel
-                    </a>
-                </div>
-            </div>
-        </div>
+                </tbody>
+            </table>
+        {% else %}
+            <p class="text-muted text-center py-4">
+                <i class="fas fa-check-circle fa-3x mb-3 d-block"></i>
+                No tasks pending approval. Great work!
+            </p>
+        {% endif %}
     </div>
 </div>
 
-<!-- Recent Activity -->
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-history"></i> Recent Task Activity
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    {% for task in recent_tasks %}
-                        <div class="col-md-6 col-lg-4">
-                            <div class="card task-card mb-3">
-                                <div class="card-body">
-                                    <h6 class="card-title">
-                                        <a href="{% url 'task_detail' task.pk %}" class="text-decoration-none">
-                                            {{ task.title|truncatechars:30 }}
-                                        </a>
-                                    </h6>
-                                    <div class="mb-2">
-                                        <span class="badge status-{{ task.status }}">
-                                            {{ task.get_status_display }}
-                                        </span>
-                                        {% if task.approval_status == 'pending' %}
-                                            <span class="badge bg-warning">Needs Approval</span>
-                                        {% endif %}
-                                    </div>
-                                    <small class="text-muted">
-                                        <i class="fas fa-user"></i> {{ task.assigned_to.first_name }}
-                                        • {{ task.created_at|timesince }} ago
-                                    </small>
-                                </div>
-                            </div>
-                        </div>
-                    {% empty %}
-                        <div class="col-12">
-                            <p class="text-muted text-center">No recent tasks</p>
-                        </div>
+<!-- Employee Performance Table -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Employee Performance Overview</h5>
+    </div>
+    <div class="card-body">
+        {% if employee_stats %}
+            <table class="table table-bordered table-hover">
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Total Tasks</th>
+                        <th>Completed Tasks</th>
+                        <th>Pending Tasks</th>
+                        <th>Overdue Tasks</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for emp_stat in employee_stats %}
+                        <tr>
+                            <td>{{ emp_stat.employee.get_full_name|default:emp_stat.employee.username }}</td>
+                            <td>{{ emp_stat.total_tasks }}</td>
+                            <td>{{ emp_stat.completed_tasks }}</td>
+                            <td>{{ emp_stat.pending_tasks }}</td>
+                            <td>
+                                {% if emp_stat.overdue_tasks > 0 %}
+                                    {{ emp_stat.overdue_tasks }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                        </tr>
                     {% endfor %}
-                </div>
-            </div>
-        </div>
+                </tbody>
+            </table>
+        {% else %}
+            <p class="text-muted text-center">No employee data available</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Recent Task Activity Table -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Recent Task Activity</h5>
+    </div>
+    <div class="card-body">
+        {% if recent_tasks %}
+            <table class="table table-bordered table-hover">
+                <thead>
+                    <tr>
+                        <th>Task Title</th>
+                        <th>Assigned To</th>
+                        <th>Status</th>
+                        <th>Priority</th>
+                        <th>Created At</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in recent_tasks %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'task_detail' task.pk %}" class="text-decoration-none">
+                                    {{ task.title|truncatechars:40 }}
+                                </a>
+                            </td>
+                            <td>{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}</td>
+                            <td>
+                                <span class="badge status-{{ task.status }}">
+                                    {{ task.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if task.priority %}
+                                    {{ task.priority.name }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>{{ task.created_at|date:"M d, Y H:i" }}</td>
+                            <td>
+                                <a href="{% url 'task_detail' task.pk %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="text-muted text-center">No recent tasks</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Category Statistics Table -->
+{% if category_stats %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Category Distribution</h5>
+    </div>
+    <div class="card-body">
+        <table class="table table-bordered table-hover">
+            <thead>
+                <tr>
+                    <th>Category</th>
+                    <th>Total Tasks</th>
+                    <th>Completed Tasks</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cat_stat in category_stats %}
+                    <tr>
+                        <td>{{ cat_stat.name }}</td>
+                        <td>{{ cat_stat.task_count }}</td>
+                        <td>{{ cat_stat.completed_count }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Quick Actions Table -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Quick Actions</h5>
+    </div>
+    <div class="card-body">
+        <table class="table table-bordered">
+            <tbody>
+                <tr>
+                    <td>
+                        <a href="{% url 'task_create' %}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-plus"></i> Assign New Task
+                        </a>
+                    </td>
+                    <td>
+                        <a href="{% url 'task_list' %}" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-list"></i> View All Tasks
+                        </a>
+                    </td>
+                    <td>
+                        <a href="/admin/" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-cog"></i> Admin Panel
+                        </a>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 </div>
 {% endblock %}

@@ -139,6 +139,18 @@
                                 <td><strong>Created:</strong></td>
                                 <td>{{ task.created_at|date:"M d, Y H:i" }}</td>
                             </tr>
+                            {% if task.start_date %}
+                            <tr>
+                                <td><strong>Start Date:</strong></td>
+                                <td>{{ task.start_date|date:"M d, Y" }}</td>
+                            </tr>
+                            {% endif %}
+                            {% if task.end_date %}
+                            <tr>
+                                <td><strong>End Date:</strong></td>
+                                <td>{{ task.end_date|date:"M d, Y" }}</td>
+                            </tr>
+                            {% endif %}
                             {% if task.due_date %}
                             <tr>
                                 <td><strong>Due date:</strong></td>
@@ -147,10 +159,10 @@
                                 </td>
                             </tr>
                             {% endif %}
-                            {% if task.estimated_hours %}
+                            {% if task.total_time %}
                             <tr>
-                                <td><strong>Estimated hours:</strong></td>
-                                <td>{{ task.estimated_hours }}</td>
+                                <td><strong>Total Time:</strong></td>
+                                <td>{{ task.total_time }}</td>
                             </tr>
                             {% endif %}
                             {% if task.actual_hours %}
@@ -192,6 +204,33 @@
                         {% else %}
                             <p class="text-muted">Current status: <strong>{{ task.get_status_display }}</strong></p>
                         {% endif %}
+                        
+                        <!-- Time Tracking Section -->
+                        {% if not is_admin and task.assigned_to == user and task.status != 'approved' and task.status != 'cancelled' %}
+                            <div class="mt-3 p-3 border rounded">
+                                <h6>Time Tracking</h6>
+                                <div id="timer-display" class="mb-2">
+                                    <div class="d-flex align-items-center">
+                                        <span class="me-2"><strong>Elapsed:</strong></span>
+                                        <span id="timer-value" class="h5 mb-0">00:00:00</span>
+                                    </div>
+                                    {% if task.total_time %}
+                                        <small class="text-muted">Total Time: {{ task.total_time }}</small>
+                                    {% endif %}
+                                </div>
+                                <div class="btn-group" role="group">
+                                    <button type="button" id="start-timer-btn" class="btn btn-success btn-sm" onclick="startTimer()">
+                                        <i class="fas fa-play"></i> Start
+                                    </button>
+                                    <button type="button" id="pause-timer-btn" class="btn btn-warning btn-sm" onclick="pauseTimer()" style="display:none;">
+                                        <i class="fas fa-pause"></i> Pause
+                                    </button>
+                                    <button type="button" id="resume-timer-btn" class="btn btn-info btn-sm" onclick="resumeTimer()" style="display:none;">
+                                        <i class="fas fa-redo"></i> Resume
+                                    </button>
+                                </div>
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -220,6 +259,30 @@
                         <i class="fas fa-paper-plane"></i> Add Comment
                     </button>
                 </form>
+                
+                <!-- Send Request Form (for employees) -->
+                {% if not is_admin and task.assigned_to == user %}
+                    <div class="mb-4 p-3 border rounded bg-light">
+                        <h6><i class="fas fa-paper-plane"></i> Send Request to Admin</h6>
+                        <form method="post" action="{% url 'send_request' task.pk %}">
+                            {% csrf_token %}
+                            <div class="mb-2">
+                                <select name="request_type" class="form-select form-select-sm">
+                                    <option value="general">General Request</option>
+                                    <option value="clarification">Need Clarification</option>
+                                    <option value="extension">Request Extension</option>
+                                    <option value="resources">Need Resources</option>
+                                </select>
+                            </div>
+                            <div class="mb-2">
+                                <textarea name="message" class="form-control" rows="2" placeholder="Enter your request message..." required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <i class="fas fa-paper-plane"></i> Send Request
+                            </button>
+                        </form>
+                    </div>
+                {% endif %}
 
                 <!-- Comments List -->
                 {% for comment in comments %}
@@ -328,5 +391,138 @@ function updateStatus() {
         alert('Error updating status');
     });
 }
+
+// Time Tracking Functions
+let timerInterval = null;
+let elapsedSeconds = 0;
+
+function getCsrfToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+function formatTime(seconds) {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
+function updateTimerDisplay() {
+    document.getElementById('timer-value').textContent = formatTime(elapsedSeconds);
+}
+
+function startTimer() {
+    fetch('{% url "start_timer" task.pk %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCsrfToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('start-timer-btn').style.display = 'none';
+            document.getElementById('pause-timer-btn').style.display = 'inline-block';
+            document.getElementById('resume-timer-btn').style.display = 'none';
+            elapsedSeconds = 0;
+            timerInterval = setInterval(() => {
+                elapsedSeconds++;
+                updateTimerDisplay();
+            }, 1000);
+        } else {
+            alert('Error: ' + (data.error || 'Could not start timer'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error starting timer');
+    });
+}
+
+function pauseTimer() {
+    fetch('{% url "pause_timer" task.pk %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCsrfToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            document.getElementById('start-timer-btn').style.display = 'none';
+            document.getElementById('pause-timer-btn').style.display = 'none';
+            document.getElementById('resume-timer-btn').style.display = 'inline-block';
+            if (data.total_time) {
+                location.reload(); // Reload to show updated total time
+            }
+        } else {
+            alert('Error: ' + (data.error || 'Could not pause timer'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error pausing timer');
+    });
+}
+
+function resumeTimer() {
+    fetch('{% url "resume_timer" task.pk %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCsrfToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('start-timer-btn').style.display = 'none';
+            document.getElementById('pause-timer-btn').style.display = 'inline-block';
+            document.getElementById('resume-timer-btn').style.display = 'none';
+            elapsedSeconds = 0;
+            timerInterval = setInterval(() => {
+                elapsedSeconds++;
+                updateTimerDisplay();
+            }, 1000);
+        } else {
+            alert('Error: ' + (data.error || 'Could not resume timer'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error resuming timer');
+    });
+}
+
+// Check timer status on page load
+document.addEventListener('DOMContentLoaded', function() {
+    {% if not is_admin and task.assigned_to == user and task.status != 'approved' and task.status != 'cancelled' %}
+    fetch('{% url "get_timer_status" task.pk %}')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.is_active) {
+                elapsedSeconds = data.elapsed_seconds || 0;
+                document.getElementById('start-timer-btn').style.display = 'none';
+                document.getElementById('pause-timer-btn').style.display = 'inline-block';
+                document.getElementById('resume-timer-btn').style.display = 'none';
+                updateTimerDisplay();
+                timerInterval = setInterval(() => {
+                    elapsedSeconds++;
+                    updateTimerDisplay();
+                }, 1000);
+            } else {
+                document.getElementById('start-timer-btn').style.display = 'inline-block';
+                document.getElementById('pause-timer-btn').style.display = 'none';
+                document.getElementById('resume-timer-btn').style.display = 'none';
+            }
+        })
+        .catch(error => {
+            console.error('Error checking timer status:', error);
+        });
+    {% endif %}
+});
 </script>
 {% endblock %}

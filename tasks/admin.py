@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.db.models import Count, Q
 from django.utils import timezone
 from .models import (Task, Category, Priority, Comment, TaskHistory, 
-                    UserProfile, TaskApproval, Notification)
+                    UserProfile, TaskApproval, Notification, TimeTracking)
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
@@ -129,7 +129,7 @@ class TaskAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
         ('Time Information', {
-            'fields': ('due_date', 'estimated_hours', 'actual_hours'),
+            'fields': ('due_date', 'start_date', 'end_date', 'estimated_hours', 'actual_hours', 'total_time'),
         }),
         ('Timestamps', {
             'fields': ('created_at', 'updated_at', 'started_at', 'completed_at', 'approved_at'),
@@ -329,6 +329,27 @@ class NotificationAdmin(admin.ModelAdmin):
             messages.SUCCESS
         )
     mark_as_unread.short_description = "Mark selected as unread"
+
+@admin.register(TimeTracking)
+class TimeTrackingAdmin(admin.ModelAdmin):
+    list_display = ('task', 'user', 'start_time', 'end_time', 'duration', 'is_active', 'created_at')
+    list_filter = ('is_active', 'created_at', 'task__status')
+    search_fields = ('task__title', 'user__username', 'user__first_name', 'user__last_name')
+    readonly_fields = ('duration', 'created_at', 'updated_at')
+    date_hierarchy = 'start_time'
+    
+    fieldsets = (
+        ('Task Information', {
+            'fields': ('task', 'user')
+        }),
+        ('Time Tracking', {
+            'fields': ('start_time', 'end_time', 'duration', 'is_active')
+        }),
+        ('Additional Information', {
+            'fields': ('notes', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        })
+    )
 
 # Customize admin site header and title
 admin.site.site_header = "Task Pro Administration"

@@ -64,8 +64,8 @@ class AdminTaskAssignForm(forms.ModelForm):
         model = Task
         fields = [
             'title', 'description', 'category', 'priority', 
-            'assigned_to', 'due_date', 'estimated_hours',
-            'requires_approval', 'attachment'
+            'assigned_to', 'due_date', 'start_date', 'end_date',
+            'estimated_hours', 'requires_approval', 'attachment'
         ]
         widgets = {
             'title': forms.TextInput(attrs={
@@ -82,6 +82,14 @@ class AdminTaskAssignForm(forms.ModelForm):
             'assigned_to': forms.Select(attrs={'class': 'form-select'}),
             'due_date': forms.DateTimeInput(attrs={
                 'type': 'datetime-local', 
+                'class': 'form-control'
+            }),
+            'start_date': forms.DateInput(attrs={
+                'type': 'date',
+                'class': 'form-control'
+            }),
+            'end_date': forms.DateInput(attrs={
+                'type': 'date',
                 'class': 'form-control'
             }),
             'estimated_hours': forms.NumberInput(attrs={
@@ -107,6 +115,8 @@ class AdminTaskAssignForm(forms.ModelForm):
         # Add helpful labels and help text
         self.fields['assigned_to'].label = "Assign to Employee"
         self.fields['due_date'].help_text = "Set deadline for task completion"
+        self.fields['start_date'].help_text = "Planned start date for the task"
+        self.fields['end_date'].help_text = "Planned end date for the task"
         self.fields['estimated_hours'].help_text = "Estimated hours to complete"
         self.fields['requires_approval'].help_text = "Check if task requires admin approval after completion"
 

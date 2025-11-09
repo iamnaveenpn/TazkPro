@@ -75,7 +75,7 @@
 </div>
 
 <!-- Filters -->
-<div class="card filter-form">
+<div class="card filter-form mb-4">
     <div class="card-body">
         <form method="get" class="row g-3">
             <div class="col-md-2">
@@ -110,126 +110,276 @@
     </div>
 </div>
 
-<!-- Tasks List -->
+<!-- Daily and Weekly Tasks Sidebar -->
 <div class="row">
-    {% for task in tasks %}
-        <div class="col-lg-6 col-xl-4">
-            <div class="card task-card {% if task.priority %}priority-{{ task.priority.name|lower }}{% endif %} {% if task.status == 'approved' %}status-completed{% endif %}">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <h6 class="card-title mb-0">
+    <div class="col-lg-3">
+        <!-- Daily Tasks -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-calendar-day"></i> Daily Tasks
+                </h6>
+            </div>
+            <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                {% if daily_tasks %}
+                    {% for task in daily_tasks|slice:":10" %}
+                        <div class="mb-2 pb-2 {% if not forloop.last %}border-bottom{% endif %}">
                             <a href="{% url 'task_detail' task.pk %}" class="text-decoration-none">
-                                {{ task.title }}
+                                <small class="d-block fw-bold">{{ task.title|truncatechars:30 }}</small>
                             </a>
-                        </h6>
-                        <div class="dropdown">
-                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-ellipsis-v"></i>
-                            </button>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{% url 'task_detail' task.pk %}">
-                                    <i class="fas fa-eye"></i> View
-                                </a></li>
-                                {% if not is_admin and task.assigned_to == user %}
-                                    <li><a class="dropdown-item" href="{% url 'task_update' task.pk %}">
-                                        <i class="fas fa-edit"></i> Update
-                                    </a></li>
+                            <small class="text-muted">
+                                <span class="badge status-{{ task.status }}">{{ task.get_status_display }}</span>
+                                {% if task.due_date %}
+                                    <br><i class="fas fa-clock"></i> {{ task.due_date|date:"H:i" }}
                                 {% endif %}
-                                {% if is_admin %}
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item text-danger" href="{% url 'task_delete' task.pk %}">
-                                        <i class="fas fa-trash"></i> Delete
-                                    </a></li>
-                                {% endif %}
-                            </ul>
-                        </div>
-                    </div>
-
-                    {% if task.description %}
-                        <p class="card-text text-muted small">
-                            {{ task.description|truncatewords:15 }}
-                        </p>
-                    {% endif %}
-
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <div>
-                            <span class="badge status-{{ task.status }}">
-                                {{ task.get_status_display }}
-                            </span>
-                            {% if task.priority %}
-                                <span class="badge priority-{{ task.priority.name|lower }} ms-1">
-                                    {{ task.priority.name }}
-                                </span>
-                            {% endif %}
-                            {% if task.approval_status == 'pending' %}
-                                <span class="badge bg-warning ms-1">
-                                    <i class="fas fa-clock"></i> Pending Approval
-                                </span>
-                            {% elif task.status == 'rejected' %}
-                                <span class="badge bg-danger ms-1">
-                                    <i class="fas fa-times"></i> Rejected
-                                </span>
-                            {% endif %}
-                        </div>
-                        {% if task.category %}
-                            <span class="badge" style="background-color: {{ task.category.color }};">
-                                {{ task.category.name }}
-                            </span>
-                        {% endif %}
-                    </div>
-
-                    <div class="row small text-muted">
-                        {% if is_admin %}
-                            <div class="col-6">
-                                <i class="fas fa-user"></i> {{ task.assigned_to.first_name }}
-                            </div>
-                        {% else %}
-                            <div class="col-6">
-                                <i class="fas fa-user-tie"></i> {{ task.created_by.first_name }}
-                            </div>
-                        {% endif %}
-                        <div class="col-6 text-end">
-                            <i class="fas fa-clock"></i> {{ task.created_at|date:"M d" }}
-                        </div>
-                    </div>
-
-                    {% if task.due_date %}
-                        <div class="mt-2">
-                            <small class="{% if task.is_overdue %}text-danger{% else %}text-muted{% endif %}">
-                                <i class="fas fa-calendar-alt"></i>
-                                Due: {{ task.due_date|date:"M d, Y" }}
-                                {% if task.is_overdue %}<i class="fas fa-exclamation-triangle"></i>{% endif %}
                             </small>
                         </div>
-                    {% endif %}
-                </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted small text-center">No daily tasks</p>
+                {% endif %}
             </div>
         </div>
-    {% empty %}
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body text-center py-5">
-                    <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
-                    <h5 class="text-muted">No tasks found</h5>
-                    <p class="text-muted">
-                        {% if is_admin %}
-                            Create your first task or adjust your filters.
+
+        <!-- Weekly Tasks -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-calendar-week"></i> Weekly Tasks
+                </h6>
+            </div>
+            <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                {% if weekly_tasks %}
+                    {% for task in weekly_tasks|slice:":10" %}
+                        <div class="mb-2 pb-2 {% if not forloop.last %}border-bottom{% endif %}">
+                            <a href="{% url 'task_detail' task.pk %}" class="text-decoration-none">
+                                <small class="d-block fw-bold">{{ task.title|truncatechars:30 }}</small>
+                            </a>
+                            <small class="text-muted">
+                                <span class="badge status-{{ task.status }}">{{ task.get_status_display }}</span>
+                                {% if task.due_date %}
+                                    <br><i class="fas fa-calendar"></i> {{ task.due_date|date:"M d" }}
+                                {% endif %}
+                            </small>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted small text-center">No weekly tasks</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Task Lists - Two Columns -->
+    <div class="col-lg-9">
+        <div class="row">
+            <!-- Pending Tasks Column -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-clock"></i> Pending Tasks
+                            <span class="badge bg-secondary ms-2">{{ pending_tasks.count }}</span>
+                        </h5>
+                    </div>
+                    <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+                        {% if pending_tasks %}
+                            {% for task in pending_tasks %}
+                                <div class="card task-card mb-3 {% if task.priority %}priority-{{ task.priority.name|lower }}{% endif %}">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <h6 class="card-title mb-0">
+                                                <a href="{% url 'task_detail' task.pk %}" class="text-decoration-none">
+                                                    {{ task.title|truncatechars:40 }}
+                                                </a>
+                                            </h6>
+                                            <div class="dropdown">
+                                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                                    <i class="fas fa-ellipsis-v"></i>
+                                                </button>
+                                                <ul class="dropdown-menu">
+                                                    <li><a class="dropdown-item" href="{% url 'task_detail' task.pk %}">
+                                                        <i class="fas fa-eye"></i> View
+                                                    </a></li>
+                                                    {% if not is_admin and task.assigned_to == user %}
+                                                        <li><a class="dropdown-item" href="{% url 'task_update' task.pk %}">
+                                                            <i class="fas fa-edit"></i> Update
+                                                        </a></li>
+                                                    {% endif %}
+                                                </ul>
+                                            </div>
+                                        </div>
+
+                                        {% if task.description %}
+                                            <p class="card-text text-muted small">
+                                                {{ task.description|truncatewords:10 }}
+                                            </p>
+                                        {% endif %}
+
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <div>
+                                                <span class="badge status-{{ task.status }}">
+                                                    {{ task.get_status_display }}
+                                                </span>
+                                                {% if task.priority %}
+                                                    <span class="badge priority-{{ task.priority.name|lower }} ms-1">
+                                                        {{ task.priority.name }}
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                            {% if task.category %}
+                                                <span class="badge" style="background-color: {{ task.category.color }};">
+                                                    {{ task.category.name }}
+                                                </span>
+                                            {% endif %}
+                                        </div>
+
+                                        <div class="row small text-muted">
+                                            {% if is_admin %}
+                                                <div class="col-6">
+                                                    <i class="fas fa-user"></i> {{ task.assigned_to.first_name }}
+                                                </div>
+                                            {% else %}
+                                                <div class="col-6">
+                                                    <i class="fas fa-user-tie"></i> {{ task.created_by.first_name }}
+                                                </div>
+                                            {% endif %}
+                                            <div class="col-6 text-end">
+                                                <i class="fas fa-clock"></i> {{ task.created_at|date:"M d" }}
+                                            </div>
+                                        </div>
+
+                                        {% if task.due_date %}
+                                            <div class="mt-2">
+                                                <small class="{% if task.is_overdue %}text-danger{% else %}text-muted{% endif %}">
+                                                    <i class="fas fa-calendar-alt"></i>
+                                                    Due: {{ task.due_date|date:"M d, Y" }}
+                                                    {% if task.is_overdue %}<i class="fas fa-exclamation-triangle"></i>{% endif %}
+                                                </small>
+                                            </div>
+                                        {% endif %}
+
+                                        {% if task.total_time %}
+                                            <div class="mt-2">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-stopwatch"></i>
+                                                    Total Time: {{ task.total_time }}
+                                                </small>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
                         {% else %}
-                            No tasks assigned to you yet.
+                            <div class="text-center py-5">
+                                <i class="fas fa-check-circle fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">No pending tasks</p>
+                            </div>
                         {% endif %}
-                    </p>
-                    {% if is_admin %}
-                        <a href="{% url 'task_create' %}" class="btn btn-primary">
-                            <i class="fas fa-plus"></i> Assign Task
-                        </a>
-                    {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Completed Tasks Column -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-check-circle"></i> Completed Tasks
+                            <span class="badge bg-success ms-2">{{ completed_tasks.count }}</span>
+                        </h5>
+                    </div>
+                    <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+                        {% if completed_tasks %}
+                            {% for task in completed_tasks %}
+                                <div class="card task-card mb-3 status-completed">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <h6 class="card-title mb-0">
+                                                <a href="{% url 'task_detail' task.pk %}" class="text-decoration-none">
+                                                    {{ task.title|truncatechars:40 }}
+                                                </a>
+                                            </h6>
+                                            <div class="dropdown">
+                                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                                    <i class="fas fa-ellipsis-v"></i>
+                                                </button>
+                                                <ul class="dropdown-menu">
+                                                    <li><a class="dropdown-item" href="{% url 'task_detail' task.pk %}">
+                                                        <i class="fas fa-eye"></i> View
+                                                    </a></li>
+                                                </ul>
+                                            </div>
+                                        </div>
+
+                                        {% if task.description %}
+                                            <p class="card-text text-muted small">
+                                                {{ task.description|truncatewords:10 }}
+                                            </p>
+                                        {% endif %}
+
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <div>
+                                                <span class="badge status-{{ task.status }}">
+                                                    {{ task.get_status_display }}
+                                                </span>
+                                                {% if task.priority %}
+                                                    <span class="badge priority-{{ task.priority.name|lower }} ms-1">
+                                                        {{ task.priority.name }}
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                            {% if task.category %}
+                                                <span class="badge" style="background-color: {{ task.category.color }};">
+                                                    {{ task.category.name }}
+                                                </span>
+                                            {% endif %}
+                                        </div>
+
+                                        <div class="row small text-muted">
+                                            {% if is_admin %}
+                                                <div class="col-6">
+                                                    <i class="fas fa-user"></i> {{ task.assigned_to.first_name }}
+                                                </div>
+                                            {% else %}
+                                                <div class="col-6">
+                                                    <i class="fas fa-user-tie"></i> {{ task.created_by.first_name }}
+                                                </div>
+                                            {% endif %}
+                                            <div class="col-6 text-end">
+                                                {% if task.completed_at %}
+                                                    <i class="fas fa-check"></i> {{ task.completed_at|date:"M d" }}
+                                                {% else %}
+                                                    <i class="fas fa-clock"></i> {{ task.created_at|date:"M d" }}
+                                                {% endif %}
+                                            </div>
+                                        </div>
+
+                                        {% if task.total_time %}
+                                            <div class="mt-2">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-stopwatch"></i>
+                                                    Total Time: {{ task.total_time }}
+                                                </small>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">No completed tasks</p>
+                            </div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
-    {% endfor %}
+    </div>
 </div>
 
-<!-- Pagination -->
+<!-- Pagination for filtered results -->
 {% if is_paginated %}
     <nav aria-label="Tasks pagination" class="mt-4">
         <ul class="pagination justify-content-center">

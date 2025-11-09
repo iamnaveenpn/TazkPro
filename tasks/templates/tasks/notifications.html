@@ -10,6 +10,12 @@
             <i class="fas fa-bell"></i> Notifications
         </h2>
 
+        {% if error_message %}
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i> {{ error_message }}
+            </div>
+        {% endif %}
+
         <div class="card">
             <div class="card-body">
                 {% if notifications %}
@@ -24,6 +30,12 @@
                                     <i class="fas fa-thumbs-up text-success"></i>
                                 {% elif notification.notification_type == 'task_rejected' %}
                                     <i class="fas fa-times-circle text-danger"></i>
+                                {% elif notification.notification_type == 'approval_requested' %}
+                                    <i class="fas fa-clock text-warning"></i>
+                                {% elif notification.notification_type == 'comment_added' %}
+                                    <i class="fas fa-comment text-info"></i>
+                                {% elif notification.notification_type == 'request_sent' %}
+                                    <i class="fas fa-paper-plane text-primary"></i>
                                 {% else %}
                                     <i class="fas fa-bell text-warning"></i>
                                 {% endif %}
@@ -37,9 +49,52 @@
                                         • by {{ notification.sender.get_full_name }}
                                     {% endif %}
                                 </small>
+                                
+                                <!-- Admin Actions for Approval Requests -->
+                                {% if is_admin and notification.notification_type == 'approval_requested' and notification.task and notification.task.can_be_approved %}
+                                    <div class="mt-2">
+                                        <form method="post" action="{% url 'approve_from_notification' notification.id %}" class="d-inline">
+                                            {% csrf_token %}
+                                            <div class="input-group input-group-sm mb-2">
+                                                <textarea name="approval_notes" class="form-control" rows="2" placeholder="Optional approval notes..."></textarea>
+                                            </div>
+                                            <button type="submit" class="btn btn-success btn-sm">
+                                                <i class="fas fa-check"></i> Approve
+                                            </button>
+                                        </form>
+                                        <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#rejectModal{{ notification.id }}">
+                                            <i class="fas fa-times"></i> Reject
+                                        </button>
+                                        
+                                        <!-- Reject Modal -->
+                                        <div class="modal fade" id="rejectModal{{ notification.id }}" tabindex="-1">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">Reject Task</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                    </div>
+                                                    <form method="post" action="{% url 'reject_from_notification' notification.id %}">
+                                                        {% csrf_token %}
+                                                        <div class="modal-body">
+                                                            <div class="mb-3">
+                                                                <label class="form-label">Rejection Notes (Required)</label>
+                                                                <textarea name="approval_notes" class="form-control" rows="3" required placeholder="Please provide a reason for rejection..."></textarea>
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                            <button type="submit" class="btn btn-danger">Reject Task</button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
                             </div>
                             {% if notification.task %}
-                                <div>
+                                <div class="ms-3">
                                     <a href="{% url 'task_detail' notification.task.pk %}" class="btn btn-sm btn-outline-primary">
                                         View Task
                                     </a>
@@ -58,4 +113,25 @@
         </div>
     </div>
 </div>
+
+<script>
+// Play notification sound when page loads if there are unread notifications
+document.addEventListener('DOMContentLoaded', function() {
+    const unreadNotifications = document.querySelectorAll('.bg-light');
+    if (unreadNotifications.length > 0) {
+        // Try to play notification sound
+        try {
+            const audio = new Audio('{% static "sounds/notification.mp3" %}');
+            audio.play().catch(e => console.log('Could not play notification sound:', e));
+        } catch (e) {
+            console.log('Notification sound not available');
+        }
+        
+        // Try to vibrate if supported
+        if ('vibrate' in navigator) {
+            navigator.vibrate(200);
+        }
+    }
+});
+</script>
 {% endblock %}

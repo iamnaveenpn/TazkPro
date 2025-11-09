@@ -25,6 +25,17 @@ urlpatterns = [
 
     # Notification URLs
     path('notifications/', views.notifications_view, name='notifications'),
+    path('notifications/<int:notification_id>/approve/', views.approve_from_notification, name='approve_from_notification'),
+    path('notifications/<int:notification_id>/reject/', views.reject_from_notification, name='reject_from_notification'),
+
+    # Time Tracking URLs
+    path('tasks/<int:task_id>/timer/start/', views.start_timer, name='start_timer'),
+    path('tasks/<int:task_id>/timer/pause/', views.pause_timer, name='pause_timer'),
+    path('tasks/<int:task_id>/timer/resume/', views.resume_timer, name='resume_timer'),
+    path('tasks/<int:task_id>/timer/status/', views.get_timer_status, name='get_timer_status'),
+
+    # Request URLs
+    path('tasks/<int:task_id>/send-request/', views.send_request, name='send_request'),
 
     # Authentication URLs
     path('register/', views.register_view, name='register'),
